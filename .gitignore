@@ -1,0 +1,8 @@
+
+# Python virtual environment
+venv/
+.venv/
+
+# Node dependencies
+node_modules/
+frontend/node_modules/
