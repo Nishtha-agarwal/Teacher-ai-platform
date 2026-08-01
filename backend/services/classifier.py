@@ -173,22 +173,12 @@ Very short/simple material.
 4-6 periods:
 Moderate amount of material.
 
-7-9 periods:
+7-10 periods:
 Large chapter with multiple concepts.
 
-10-12 periods:
-Very large or conceptually dense chapter.
-
-13-20 periods:
-Only if the document is exceptionally large
-or complex and clearly requires it.
-
 Do NOT always return 3.
-
 Do NOT return a range.
-
 Correct:
-
 "teaching_periods": 8
 
 Incorrect:
