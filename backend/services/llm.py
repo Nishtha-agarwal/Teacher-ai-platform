@@ -1,4 +1,4 @@
-````python
+
 import json
 import os
 import re
@@ -483,4 +483,4 @@ INVALID JSON:
         raise RuntimeError(
             f"LLM returned invalid JSON: {error}"
         )
-````
+
