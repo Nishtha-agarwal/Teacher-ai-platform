@@ -10,20 +10,24 @@ export const uploadFile = async (file) => {
 
   const response = await API.post("/upload/", formData);
 
-  console.log("RAW AXIOS RESPONSE:", response);
-  console.log("UPLOAD DATA:", response.data);
-  console.log("UPLOAD PATH:", response.data?.path);
+  console.log("=== UPLOAD API ===");
+  console.log("Axios response:", response);
+  console.log("Response data:", response.data);
+  console.log("Response path:", response.data?.path);
 
   return response.data;
 };
 
 export const processDocument = async (path) => {
+  console.log("=== PROCESS API ===");
+  console.log("Sending path:", path);
+
   const response = await API.post("/process/", {
     path: path,
   });
-  
-  console.log("RAW PROCESS RESPONSE:", response);
-  console.log("PROCESS DATA:", response.data);
+
+  console.log("Process response:", response);
+  console.log("Process data:", response.data);
 
   return response.data;
 };
