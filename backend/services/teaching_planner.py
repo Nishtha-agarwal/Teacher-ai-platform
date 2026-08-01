@@ -1,4 +1,4 @@
-from services.llm import ask_json
+from backend.services.llm import ask_json
 
 
 def generate_teaching_plan(knowledge, classification):
