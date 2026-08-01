@@ -1,4 +1,3 @@
-```javascript
 import axios from "axios";
 
 const API = axios.create({
@@ -11,9 +10,9 @@ export const uploadFile = async (file) => {
 
   const response = await API.post("/upload/", formData);
 
-  console.log("Upload response:", response.data);
+  console.log("RAW AXIOS RESPONSE:", response);
+  console.log("UPLOAD DATA:", response.data);
 
-  // Return ONLY the backend JSON
   return response.data;
 };
 
@@ -22,12 +21,10 @@ export const processDocument = async (path) => {
     path: path,
   });
 
-  console.log("Process response:", response.data);
+  console.log("PROCESS DATA:", response.data);
 
-  // Return ONLY the backend JSON
   return response.data;
 };
 
 export default API;
-```
 
