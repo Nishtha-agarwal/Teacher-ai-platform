@@ -5,8 +5,7 @@ const API_URL = import.meta.env.VITE_API_URL;
 console.log("API URL:", API_URL);
 
 const API = axios.create({
-  baseURL: API_URL,
-  timeout: 30000,
+  baseURL: API_URL
 });
 
 export const uploadFile = async (file) => {
