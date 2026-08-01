@@ -3,74 +3,324 @@ from backend.services.llm import ask_json
 
 def classify_document(text):
 
-    # Limit classification input so the prompt does not become huge.
-    content = text[:15000]
+    # ---------------------------------------------------------
+    # Limit input size for classification.
+    # We use enough content to understand the chapter.
+    # ---------------------------------------------------------
+
+    content = text[:20000]
 
     prompt = f"""
-You are an educational document classifier.
+You are an expert educational document classifier and curriculum planner.
 
-Analyze the following educational document.
+Analyze the educational document below.
 
-DOCUMENT:
+==================================================
+DOCUMENT
+==================================================
+
 {content}
 
-Return ONLY valid JSON using exactly this structure:
+==================================================
+TASK
+==================================================
+
+Classify the document and estimate how many classroom
+teaching periods are reasonably required to teach the
+chapter completely.
+
+The number of periods must depend on:
+
+- Amount of content
+- Number of major concepts
+- Concept complexity
+- Number of formulas
+- Derivations
+- Examples
+- Problems/exercises
+- Activities
+- Conceptual difficulty
+- Overall chapter depth
+
+Do NOT automatically return 3 periods.
+
+A short/simple chapter may require 2-3 periods.
+
+A medium chapter may require 4-7 periods.
+
+A large/complex chapter may require 8-12 periods.
+
+A very large chapter may require more than 12 periods
+if the source clearly supports that amount.
+
+Do not inflate the number unnecessarily.
+
+The goal is a realistic classroom teaching plan.
+
+==================================================
+OUTPUT FORMAT
+==================================================
+
+Return ONLY valid JSON using EXACTLY this structure:
 
 {{
   "subject": "string",
+
   "grade": "string",
+
   "difficulty": "Beginner",
+
   "topic": "string",
+
   "chapter": "string",
-  "category": "string"
+
+  "category": "string",
+
+  "teaching_periods": 3,
+
+  "period_duration_minutes": 45,
+
+  "period_reason": "string"
 }}
 
-RULES:
+==================================================
+FIELD RULES
+==================================================
 
-1. subject:
-   Identify the actual academic subject.
-   Examples:
-   Physics, Chemistry, Mathematics, Biology, Computer Science.
+subject:
 
-2. grade:
-   Identify the class/grade from the document.
+Identify the actual academic subject.
 
-   If this is clearly an NCERT Class 12 document,
-   return exactly:
-   "12"
+Examples:
 
-   If it is Class 11:
-   return:
-   "11"
+Physics
+Chemistry
+Mathematics
+Biology
+Computer Science
 
-   If the grade cannot be determined:
-   return:
-   "Unknown"
+--------------------------------------------------
 
-3. difficulty:
-   Return EXACTLY ONE of:
+grade:
 
-   "Beginner"
-   "Intermediate"
-   "Advanced"
+Identify the class/grade from the document.
 
-   NEVER return:
-   "Beginner | Intermediate | Advanced"
+If clearly NCERT Class 12:
 
-4. topic:
-   Identify the main topic of the document.
+"12"
 
-5. chapter:
-   Identify the chapter number/name if available.
+If Class 11:
 
-6. category:
-   Return the academic category/subject.
+"11"
 
-7. Do not invent information.
+If the grade cannot be determined:
 
-8. Base the classification only on the document.
+"Unknown"
 
-9. Return ONLY JSON.
+--------------------------------------------------
+
+difficulty:
+
+Return EXACTLY ONE:
+
+"Beginner"
+"Intermediate"
+"Advanced"
+
+Never return multiple values.
+
+--------------------------------------------------
+
+topic:
+
+Identify the main topic of the document.
+
+Use terminology from the source.
+
+--------------------------------------------------
+
+chapter:
+
+Identify the chapter number/name if available.
+
+Use the actual chapter information from the source.
+
+--------------------------------------------------
+
+category:
+
+Return the academic category/subject.
+
+--------------------------------------------------
+
+teaching_periods:
+
+This is VERY IMPORTANT.
+
+Return ONE integer.
+
+This integer represents the total number of
+45-minute classroom periods required to teach
+the chapter.
+
+The number must be based on the actual document.
+
+Use the following general guidance:
+
+1-3 periods:
+Very short/simple material.
+
+4-6 periods:
+Moderate amount of material.
+
+7-9 periods:
+Large chapter with multiple concepts.
+
+10-12 periods:
+Very large or conceptually dense chapter.
+
+13-20 periods:
+Only if the document is exceptionally large
+or complex and clearly requires it.
+
+Do NOT always return 3.
+
+Do NOT return a range.
+
+Correct:
+
+"teaching_periods": 8
+
+Incorrect:
+
+"teaching_periods": "8-10"
+
+Incorrect:
+
+"teaching_periods": "3-5"
+
+--------------------------------------------------
+
+period_duration_minutes:
+
+Always return:
+
+45
+
+--------------------------------------------------
+
+period_reason:
+
+Briefly explain why the selected number of periods
+is appropriate.
+
+Mention actual characteristics of the document.
+
+For example:
+
+"Large chapter containing multiple major concepts,
+derivations, examples and exercises."
+
+Do not invent details that are not present.
+
+==================================================
+IMPORTANT CONSISTENCY RULE
+==================================================
+
+The value of "teaching_periods" will be passed directly
+to the Teacher Knowledge Package generator.
+
+Therefore:
+
+Choose the number carefully.
+
+Do not change it later.
+
+The TKP generator MUST use exactly this number.
+
+==================================================
+GROUNDING RULES
+==================================================
+
+1. Use ONLY information supported by the document.
+
+2. Do not invent chapter information.
+
+3. Do not invent formulas.
+
+4. Do not invent topics.
+
+5. Do not use outside academic information.
+
+6. Base the period estimate on the actual amount
+   and complexity of the supplied document.
+
+7. Return ONLY valid JSON.
+
+8. Do not use Markdown.
+
+9. Do not include explanations outside JSON.
+
+==================================================
+FINAL VALIDATION
+==================================================
+
+Before returning the response verify:
+
+- subject exists
+- grade exists
+- difficulty is exactly one value
+- topic exists
+- chapter exists
+- category exists
+- teaching_periods is an integer
+- teaching_periods is greater than 0
+- period_duration_minutes is exactly 45
+- period_reason exists
+
+Return ONLY the JSON object.
 """
 
-    return ask_json(prompt)
+    result = ask_json(prompt)
+
+    # ---------------------------------------------------------
+    # PROGRAMMATIC VALIDATION
+    # ---------------------------------------------------------
+
+    if not isinstance(result, dict):
+        raise RuntimeError(
+            "Classifier returned invalid JSON."
+        )
+
+    # ---------------------------------------------------------
+    # Validate teaching_periods
+    # ---------------------------------------------------------
+
+    period_count = result.get("teaching_periods")
+
+    try:
+        period_count = int(period_count)
+    except (TypeError, ValueError):
+        raise RuntimeError(
+            "Classifier returned an invalid teaching_periods value."
+        )
+
+    if period_count < 1:
+        raise RuntimeError(
+            "teaching_periods must be greater than 0."
+        )
+
+    # Prevent accidental extreme values.
+    if period_count > 20:
+        period_count = 20
+
+    result["teaching_periods"] = period_count
+
+    # ---------------------------------------------------------
+    # Period duration is fixed.
+    # ---------------------------------------------------------
+
+    result["period_duration_minutes"] = 45
+
+    return result
+
