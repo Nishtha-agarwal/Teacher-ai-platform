@@ -165,7 +165,6 @@ def ask_gemini(prompt: str) -> str:
             model=GEMINI_MODEL,
             contents=prompt,
             config=types.GenerateContentConfig(
-                temperature=0.1,
                 response_mime_type="application/json",
             ),
         )
