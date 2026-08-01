@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from api import upload, process, health
+from backend.api import upload, process, health
 
 app = FastAPI(title="Teacher AI Platform")
 
