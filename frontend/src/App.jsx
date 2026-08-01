@@ -10,6 +10,7 @@ export default function App() {
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
 
+  
 const handleUpload = async (file) => {
   try {
     setLoading(true);
@@ -18,14 +19,12 @@ const handleUpload = async (file) => {
 
     console.log("Uploading file:", file.name);
 
-    // Step 1: Upload document
+    // Step 1: Upload
     const uploadRes = await uploadFile(file);
 
     console.log("Upload Response:", uploadRes);
-    console.log("Upload Data:", uploadRes.data);
 
-    // Backend returns path inside response.data
-    const filePath = uploadRes.data?.path;
+    const filePath = uploadRes?.path;
 
     if (!filePath) {
       throw new Error("Backend did not return a file path.");
@@ -34,16 +33,15 @@ const handleUpload = async (file) => {
     console.log("File uploaded successfully.");
     console.log("Path:", filePath);
 
-    // Step 2: Process document
+    // Step 2: Process
     console.log("Calling /process...");
+    console.log("Path:", filePath);
 
     const processRes = await processDocument(filePath);
 
     console.log("Process Response:", processRes);
-    console.log("Process Data:", processRes.data);
 
-    // Axios response -> actual backend JSON
-    setResult(processRes.data);
+    setResult(processRes);
 
   } catch (err) {
     console.error("ERROR:", err);
@@ -64,7 +62,7 @@ const handleUpload = async (file) => {
     setLoading(false);
   }
 };
-
+   
   return (
     <div className="app">
 
