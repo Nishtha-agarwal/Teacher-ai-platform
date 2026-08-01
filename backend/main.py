@@ -1,8 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api.upload import router as upload_router
-from api.process import router as process_router
+from backend.api.upload import router as upload_router
+from backend.api.process import router as process_router
 
 app = FastAPI(title="Teacher AI Platform")
 
