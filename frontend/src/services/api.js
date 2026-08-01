@@ -1,38 +1,33 @@
+```javascript
 import axios from "axios";
 
-const API_URL = import.meta.env.VITE_API_URL;
-
-console.log("API URL:", API_URL);
-
 const API = axios.create({
-  baseURL: API_URL
+  baseURL: "https://teacher-ai-platform.onrender.com",
 });
 
 export const uploadFile = async (file) => {
   const formData = new FormData();
   formData.append("file", file);
-  
-  console.log("Uploading to:", `${API_URL}/upload/`);
-  console.log("File:", file.name, file.type, file.size);
-  
-  return API.post("/upload/", formData);
-  try {
-    const response = await API.post("/upload/", formData);
-    console.log("Upload response:", response.data);
-    return response;
-  } catch (error) {
-    console.error("Upload error:", error);
-    console.error("Request URL:", error.config?.baseURL + error.config?.url);
-    console.error("Response:", error.response);
-    console.error("Message:", error.message);
-    throw error;
-  }
+
+  const response = await API.post("/upload/", formData);
+
+  console.log("Upload response:", response.data);
+
+  // Return ONLY the backend JSON
+  return response.data;
 };
 
 export const processDocument = async (path) => {
-  return API.post("/process/", {
+  const response = await API.post("/process/", {
     path: path,
   });
+
+  console.log("Process response:", response.data);
+
+  // Return ONLY the backend JSON
+  return response.data;
 };
 
 export default API;
+```
+
