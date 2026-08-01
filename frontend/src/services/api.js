@@ -12,8 +12,10 @@ const API = axios.create({
 export const uploadFile = async (file) => {
   const formData = new FormData();
   formData.append("file", file);
+  
   console.log("Uploading to:", `${API_URL}/upload/`);
   console.log("File:", file.name, file.type, file.size);
+  
   return API.post("/upload/", formData);
   try {
     const response = await API.post("/upload/", formData);
@@ -30,7 +32,7 @@ export const uploadFile = async (file) => {
 
 export const processDocument = async (path) => {
   return API.post("/process/", {
-    path,
+    path: path,
   });
 };
 
