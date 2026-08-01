@@ -10,48 +10,60 @@ export default function App() {
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
 
-  const handleUpload = async (file) => {
-    try {
-      setLoading(true);
-      setError("");
-      setResult(null);
+const handleUpload = async (file) => {
+  try {
+    setLoading(true);
+    setError("");
+    setResult(null);
 
-      console.log("Uploading file:", file.name);
+    console.log("Uploading file:", file.name);
 
-      const uploadRes = await uploadFile(file);
+    // Step 1: Upload document
+    const uploadRes = await uploadFile(file);
 
-      console.log("Upload Response:", uploadRes);
+    console.log("Upload Response:", uploadRes);
+    console.log("Upload Data:", uploadRes.data);
 
-      if (!uploadRes.path) {
-        throw new Error("Backend did not return a file path.");
-      }
+    // Backend returns path inside response.data
+    const filePath = uploadRes.data?.path;
 
-      console.log("Calling /process...");
-      console.log("Path:", uploadRes.path);
-
-      const processRes = await processDocument(uploadRes.path);
-
-      console.log("Process Response:", processRes);
-
-      setResult(processRes);
-    } catch (err) {
-      console.error("ERROR:", err);
-
-      if (err.response) {
-        console.error("Status:", err.response.status);
-        console.error("Backend response:", err.response.data);
-
-        setError(
-          err.response.data?.detail ||
-            `Server error: ${err.response.status}`
-        );
-      } else {
-        setError(err.message || "Failed to process document.");
-      }
-    } finally {
-      setLoading(false);
+    if (!filePath) {
+      throw new Error("Backend did not return a file path.");
     }
-  };
+
+    console.log("File uploaded successfully.");
+    console.log("Path:", filePath);
+
+    // Step 2: Process document
+    console.log("Calling /process...");
+
+    const processRes = await processDocument(filePath);
+
+    console.log("Process Response:", processRes);
+    console.log("Process Data:", processRes.data);
+
+    // Axios response -> actual backend JSON
+    setResult(processRes.data);
+
+  } catch (err) {
+    console.error("ERROR:", err);
+
+    if (err.response) {
+      console.error("Status:", err.response.status);
+      console.error("Backend response:", err.response.data);
+
+      setError(
+        err.response.data?.detail ||
+        err.response.data?.message ||
+        `Server error: ${err.response.status}`
+      );
+    } else {
+      setError(err.message || "Failed to process document.");
+    }
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="app">
