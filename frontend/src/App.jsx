@@ -21,13 +21,9 @@ const handleUpload = async (file) => {
 
     // Step 1: Upload
     const uploadRes = await uploadFile(file);
-
-    console.log("Upload Response:", uploadRes);
-
     const filePath = uploadRes?.path;
-
     if (!filePath) {
-      throw new Error("Backend did not return a file path.");
+      throw new Error("Backend did not return");
     }
 
     console.log("File uploaded successfully.");
