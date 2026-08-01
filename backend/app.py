@@ -1,8 +1,15 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-app = FastAPI()
+from api.upload import router as upload_router
+from api.process import router as process_router
 
+app = FastAPI(
+    title="Teacher AI Platform",
+    version="1.0.0"
+)
+
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -11,14 +18,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Your routers
-from api.upload import router as upload_router
-from api.process import router as process_router
-
+# Routers
 app.include_router(upload_router)
 app.include_router(process_router)
 
 
+@app.get("/")
+def root():
+    return {
+        "message": "Teacher AI Platform API is running"
+    }
+
+
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    return {
+        "status": "ok"
+    }
