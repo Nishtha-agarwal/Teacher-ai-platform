@@ -1,32 +1,20 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: "http://localhost:8000",
+  baseURL: "https://teacher-ai-platform.onrender.com",
 });
 
-export async function uploadFile(file) {
-
+export const uploadFile = (file) => {
   const formData = new FormData();
-
   formData.append("file", file);
 
-  const res = await API.post(
-    "/upload/",
-    formData
-  );
+  return API.post("/upload/", formData);
+};
 
-  return res.data;
-}
+export const processDocument = (path) => {
+  return API.post("/process/", {
+    path: path,
+  });
+};
 
-
-export async function processDocument(path) {
-
-  const res = await API.post(
-    "/process/",
-    {
-      path
-    }
-  );
-
-  return res.data;
-}
+export default API;
