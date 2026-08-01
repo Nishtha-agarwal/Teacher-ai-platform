@@ -1,16 +1,15 @@
 from fastapi import APIRouter, HTTPException
 
-from services.parser import extract_text
-from services.chunker import chunk_text
-from services.classifier import classify_document
-from services.tkp_generator import generate_tkp
-
-from services.teaching_planner import generate_teaching_plan
-from services.classroom_generator import generate_classroom_content
-from services.activity_generator import generate_activities
-from services.assessment_generator import generate_assessment
-from services.learning_gap import analyze_learning_gaps
-from services.validator import validate_tkp
+from backend.services.parser import extract_text
+from backend.services.chunker import chunk_text
+from backend.services.classifier import classify_document
+from backend.services.tkp_generator import generate_tkp
+from backend.services.teaching_planner import generate_teaching_plan
+from backend.services.classroom_generator import generate_classroom_content
+from backend.services.activity_generator import generate_activities
+from backend.services.assessment_generator import generate_assessment
+from backend.services.learning_gap import analyze_learning_gaps
+from backend.services.validator import validate_tkp
 
 
 router = APIRouter(
