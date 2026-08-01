@@ -1,4 +1,4 @@
-from services.llm import ask_json
+from backend.services.llm import ask_json
 
 
 def analyze_learning_gaps(
