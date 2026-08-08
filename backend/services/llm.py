@@ -1,7 +1,10 @@
 import os
 import time
 import json
+import re
+
 from google import genai
+
 
 # ============================================================
 # CONFIGURATION
@@ -25,7 +28,7 @@ GEMINI_MAX_RETRIES = int(
 
 def get_gemini_client():
     """
-    Create and return a Gemini client.
+    Create and return Gemini client.
     """
 
     if not GEMINI_API_KEY:
@@ -48,7 +51,7 @@ def ask_gemini(prompt: str) -> str:
 
     429:
         Quota/rate limit exceeded.
-        Do not blindly retry.
+        Do not retry.
 
     503:
         Temporary Gemini overload.
@@ -84,7 +87,8 @@ def ask_gemini(prompt: str) -> str:
                     model=GEMINI_MODEL,
                     contents=prompt,
                     config=types.GenerateContentConfig(
-                        response_mime_type="application/json"
+                        response_mime_type="application/json",
+                        temperature=0.1
                     )
                 )
 
@@ -216,66 +220,169 @@ def ask_gemini(prompt: str) -> str:
 
 
 # ============================================================
-# PARSE JSON
+# CLEAN GEMINI JSON
 # ============================================================
 
-def _parse_json_response(result: str):
+def _clean_json_response(text: str) -> str:
     """
-    Convert Gemini's JSON string into a Python dictionary/list.
-
-    Also handles accidental markdown code fences such as:
-
-    ```json
-    {
-        "subject": "Physics"
-    }
-    ```
+    Clean common Gemini JSON formatting problems.
     """
 
-    if not result:
+    if not text:
         raise RuntimeError(
             "Gemini returned an empty response."
         )
 
-    result = result.strip()
+    text = text.strip()
 
     # --------------------------------------------------------
     # Remove markdown code fences
     # --------------------------------------------------------
 
-    if result.startswith("```"):
+    text = re.sub(
+        r"^```(?:json)?\s*",
+        "",
+        text,
+        flags=re.IGNORECASE
+    )
 
-        lines = result.splitlines()
+    text = re.sub(
+        r"\s*```$",
+        "",
+        text
+    )
 
-        # Remove first line: ```json
-        if lines:
-            lines = lines[1:]
+    text = text.strip()
 
-        # Remove last line: ```
-        if lines and lines[-1].strip() == "```":
-            lines = lines[:-1]
+    return text
 
-        result = "\n".join(lines).strip()
+
+# ============================================================
+# EXTRACT FIRST COMPLETE JSON OBJECT / ARRAY
+# ============================================================
+
+def _extract_json(text: str):
+    """
+    Extract the first complete JSON object or array.
+
+    This protects against Gemini returning something like:
+
+        {
+            "subject": "Physics"
+        }
+
+        {
+            "extra": "text"
+        }
+
+    or:
+
+        Here is the JSON:
+
+        {
+            ...
+        }
+
+        Hope this helps.
+    """
+
+    text = _clean_json_response(text)
 
     # --------------------------------------------------------
-    # Parse JSON
+    # First attempt: normal JSON parsing
     # --------------------------------------------------------
 
     try:
+        return json.loads(text)
 
-        return json.loads(result)
+    except json.JSONDecodeError:
+        pass
 
-    except json.JSONDecodeError as error:
+    # --------------------------------------------------------
+    # Find first JSON object or array
+    # --------------------------------------------------------
 
-        print(
-            "[GEMINI] Invalid JSON response:"
+    start_positions = []
+
+    object_start = text.find("{")
+    array_start = text.find("[")
+
+    if object_start != -1:
+        start_positions.append(object_start)
+
+    if array_start != -1:
+        start_positions.append(array_start)
+
+    if not start_positions:
+        raise RuntimeError(
+            "Gemini response does not contain valid JSON."
         )
 
-        print(result)
+    start = min(start_positions)
 
-        raise RuntimeError(
-            f"Gemini returned invalid JSON: {error}"
-        ) from error
+    opening = text[start]
+
+    if opening == "{":
+        closing = "}"
+    else:
+        closing = "]"
+
+    # --------------------------------------------------------
+    # Track nested objects/arrays
+    # --------------------------------------------------------
+
+    depth = 0
+    in_string = False
+    escape = False
+
+    for index in range(start, len(text)):
+
+        char = text[index]
+
+        # Handle escaped characters inside strings
+        if escape:
+            escape = False
+            continue
+
+        if char == "\\" and in_string:
+            escape = True
+            continue
+
+        # Toggle string state
+        if char == '"':
+            in_string = not in_string
+            continue
+
+        if in_string:
+            continue
+
+        # Opening brackets
+        if char == "{" or char == "[":
+            depth += 1
+
+        # Closing brackets
+        elif char == "}" or char == "]":
+            depth -= 1
+
+            if depth == 0:
+
+                candidate = text[
+                    start:index + 1
+                ].strip()
+
+                try:
+                    return json.loads(candidate)
+
+                except json.JSONDecodeError as error:
+
+                    raise RuntimeError(
+                        "Gemini returned malformed JSON."
+                    ) from error
+
+    raise RuntimeError(
+        "Could not find a complete JSON object in "
+        "Gemini response."
+    )
 
 
 # ============================================================
@@ -284,15 +391,19 @@ def _parse_json_response(result: str):
 
 def ask_json(prompt: str):
     """
-    Send a prompt to Gemini and return parsed JSON.
+    Ask Gemini and return a Python dictionary/list.
 
-    Example:
+    This function is compatible with:
 
-        result = ask_json(prompt)
-
-        print(result["subject"])
+        from backend.services.llm import ask_json
     """
 
     result = ask_gemini(prompt)
 
-    return _parse_json_response(result)
+    parsed = _extract_json(result)
+
+    print(
+        "[GEMINI] JSON parsed successfully."
+    )
+
+    return parsed
