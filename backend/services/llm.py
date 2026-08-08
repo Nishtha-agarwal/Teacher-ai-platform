@@ -1,3 +1,47 @@
+import os
+import time
+import json
+from google import genai
+
+# ============================================================
+# CONFIGURATION
+# ============================================================
+
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+
+GEMINI_MODEL = os.getenv(
+    "GEMINI_MODEL",
+    "gemini-2.5-flash"
+)
+
+GEMINI_MAX_RETRIES = int(
+    os.getenv("GEMINI_MAX_RETRIES", "3")
+)
+
+
+# ============================================================
+# GEMINI CLIENT
+# ============================================================
+
+def get_gemini_client():
+    """
+    Create and return a Gemini client.
+    """
+
+    if not GEMINI_API_KEY:
+        raise RuntimeError(
+            "GEMINI_API_KEY environment variable is not set."
+        )
+
+    return genai.Client(
+        api_key=GEMINI_API_KEY
+    )
+
+
+# ============================================================
+# ASK GEMINI
+# ============================================================
+
 def ask_gemini(prompt: str) -> str:
     """
     Send a prompt to Gemini with controlled retry handling.
@@ -12,6 +56,9 @@ def ask_gemini(prompt: str) -> str:
 
     Timeout:
         Retry with exponential backoff.
+
+    Returns:
+        Gemini response as a string.
     """
 
     try:
@@ -22,6 +69,7 @@ def ask_gemini(prompt: str) -> str:
         for attempt in range(GEMINI_MAX_RETRIES):
 
             try:
+
                 print(
                     f"[GEMINI] Model: {GEMINI_MODEL}"
                 )
@@ -165,3 +213,86 @@ def ask_gemini(prompt: str) -> str:
             "google-genai is not installed. "
             "Run: pip install google-genai"
         )
+
+
+# ============================================================
+# PARSE JSON
+# ============================================================
+
+def _parse_json_response(result: str):
+    """
+    Convert Gemini's JSON string into a Python dictionary/list.
+
+    Also handles accidental markdown code fences such as:
+
+    ```json
+    {
+        "subject": "Physics"
+    }
+    ```
+    """
+
+    if not result:
+        raise RuntimeError(
+            "Gemini returned an empty response."
+        )
+
+    result = result.strip()
+
+    # --------------------------------------------------------
+    # Remove markdown code fences
+    # --------------------------------------------------------
+
+    if result.startswith("```"):
+
+        lines = result.splitlines()
+
+        # Remove first line: ```json
+        if lines:
+            lines = lines[1:]
+
+        # Remove last line: ```
+        if lines and lines[-1].strip() == "```":
+            lines = lines[:-1]
+
+        result = "\n".join(lines).strip()
+
+    # --------------------------------------------------------
+    # Parse JSON
+    # --------------------------------------------------------
+
+    try:
+
+        return json.loads(result)
+
+    except json.JSONDecodeError as error:
+
+        print(
+            "[GEMINI] Invalid JSON response:"
+        )
+
+        print(result)
+
+        raise RuntimeError(
+            f"Gemini returned invalid JSON: {error}"
+        ) from error
+
+
+# ============================================================
+# ASK JSON
+# ============================================================
+
+def ask_json(prompt: str):
+    """
+    Send a prompt to Gemini and return parsed JSON.
+
+    Example:
+
+        result = ask_json(prompt)
+
+        print(result["subject"])
+    """
+
+    result = ask_gemini(prompt)
+
+    return _parse_json_response(result)
